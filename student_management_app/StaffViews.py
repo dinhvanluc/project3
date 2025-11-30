@@ -326,30 +326,27 @@ def staff_add_result_save(request):
     if request.method != "POST":
         messages.error(request, "Invalid Method")
         return redirect('staff_add_result')
-    else:
-        student_admin_id = request.POST.get('student_list')
-        assignment_marks = request.POST.get('assignment_marks')
-        exam_marks = request.POST.get('exam_marks')
-        subject_id = request.POST.get('subject')
 
-        student_obj = Students.objects.get(admin=student_admin_id)
+    try:
+        student_admin_id = int(request.POST.get('student_list'))
+        assignment_marks = float(request.POST.get('assignment_marks'))
+        exam_marks = float(request.POST.get('exam_marks'))
+        subject_id = int(request.POST.get('subject'))
+
+        student_obj = Students.objects.get(admin__id=student_admin_id)
         subject_obj = Subjects.objects.get(id=subject_id)
 
-        try:
-            # Check if Students Result Already Exists or not
-            check_exist = StudentResult.objects.filter(subject_id=subject_obj, student_id=student_obj).exists()
-            if check_exist:
-                result = StudentResult.objects.get(subject_id=subject_obj, student_id=student_obj)
-                result.subject_assignment_marks = assignment_marks
-                result.subject_exam_marks = exam_marks
-                result.save()
-                messages.success(request, "Result Updated Successfully!")
-                return redirect('staff_add_result')
-            else:
-                result = StudentResult(student_id=student_obj, subject_id=subject_obj, subject_exam_marks=exam_marks, subject_assignment_marks=assignment_marks)
-                result.save()
-                messages.success(request, "Result Added Successfully!")
-                return redirect('staff_add_result')
-        except:
-            messages.error(request, "Failed to Add Result!")
-            return redirect('staff_add_result')
+        # Tạo bản ghi mới mỗi lần – không dùng get_or_create
+        result = StudentResult.objects.create(
+            student_id=student_obj,
+            subject_id=subject_obj,
+            subject_assignment_marks=assignment_marks,
+            subject_exam_marks=exam_marks
+        )
+
+        messages.success(request, "Result Added Successfully!")
+        return redirect('staff_add_result')
+
+    except Exception as e:
+        messages.error(request, f"Failed to Add Result! Error: {e}")
+        return redirect('staff_add_result')
